@@ -29,13 +29,18 @@
                      (assoc old-shape :position new-pos)
                      old-shape)))))
 
+(defn shape-update-rotation [shape]
+  {:pre [(= (class shape) clojure.lang.Atom)]}
+  (swap! shape (fn [old-shape] (grid/rotate-shape old-shape))))
+
 (defn make-input-handler [panel]
   (proxy [java.awt.event.KeyListener] []
     (keyPressed [e]
       (let [key-code (.getKeyCode e)]
         (cond
           (= key-code KeyEvent/VK_LEFT) (shape-update-pos shared-shape @shared-grid identity dec)
-          (= key-code KeyEvent/VK_RIGHT) (shape-update-pos shared-shape @shared-grid identity inc)))
+          (= key-code KeyEvent/VK_RIGHT) (shape-update-pos shared-shape @shared-grid identity inc)
+          (= key-code KeyEvent/VK_UP) (shape-update-rotation shared-shape)))      
       (.repaint panel))
     (keyReleased [_])
     (keyTyped [_])))

@@ -98,6 +98,11 @@
                                  (assoc-in @grid-data grid-pos color-name)))))
     (make-grid @grid-data)))
 
+(defn rotate-shape [shape]
+  (let [shape-grid-data (:data (:body shape))]
+    (->Shape (:position shape)
+             (make-grid (vec (apply map (comp vec reverse vector) shape-grid-data))))))
+
 (defn collision? [grid shape]
   (let [padded-shape (place-shape (make-grid) shape)
         cells-colide? (fn [c1 c2] (and (not= c1 :empty) (not= c2 :empty)))]
