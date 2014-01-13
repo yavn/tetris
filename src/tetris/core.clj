@@ -17,15 +17,14 @@
     (paintComponent [g]
       (grid/paint g (grid/place-shape @shared-grid @shared-shape)))))
 
-(defn- shape-update-pos [shape row-fn col-fn]
+(defn- shape-update-pos [shape grid row-fn col-fn]
   {:pre [(= (class shape) clojure.lang.Atom)]}
   (swap! shape (fn [old-shape]
-                 (let [shape-height (count (:body @shape))
-                       shape-width (count (first (:body @shape)))
+                 (let [shape-body (:body @shape)
                        [row col] (:position old-shape)
                        new-pos [(row-fn row) (col-fn col)]
-                       in-bounds? (and (<= 0 (new-pos 1) (- (:cols grid/grid-size) shape-width))
-                                       (<= (new-pos 0) (- (:rows grid/grid-size) shape-height)))]
+                       in-bounds? (and (<= 0 (new-pos 1) (- (.cols grid) (.cols shape-body)))
+                                       (<= (new-pos 0) (- (.rows grid) (.rows shape-body))))]
                    (if in-bounds?
                      (assoc old-shape :position new-pos)
                      old-shape)))))
@@ -35,8 +34,8 @@
     (keyPressed [e]
       (let [key-code (.getKeyCode e)]
         (cond
-          (= key-code KeyEvent/VK_LEFT) (shape-update-pos shared-shape identity dec)
-          (= key-code KeyEvent/VK_RIGHT) (shape-update-pos shared-shape identity inc)))
+          (= key-code KeyEvent/VK_LEFT) (shape-update-pos shared-shape @shared-grid identity dec)
+          (= key-code KeyEvent/VK_RIGHT) (shape-update-pos shared-shape @shared-grid identity inc)))
       (.repaint panel))
     (keyReleased [_])
     (keyTyped [_])))
@@ -44,7 +43,7 @@
 (defn- make-update-task [panel]
   (proxy [java.util.TimerTask] []
     (run []
-      (shape-update-pos shared-shape inc identity)
+      (shape-update-pos shared-shape @shared-grid inc identity)
       (.repaint panel))))
 
 (defn- make-frame []

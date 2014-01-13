@@ -1,6 +1,6 @@
 (ns tetris.grid)
 
-(def grid-size { :rows 14 :cols 10 })
+(def ^:private grid-size { :rows 14 :cols 10 })
 (def ^:private cell-size-in-pixels 32)
 
 (defn- cells->pixels [n]
@@ -19,11 +19,30 @@
     :cyan java.awt.Color/cyan
     :magenta java.awt.Color/magenta })
 
+(defprotocol GridProtocol
+  (rows [this])
+  (cols [this]))
+
+(defrecord Grid [data]
+  GridProtocol
+  (rows [_] (count data))
+  (cols [_] (count (first data))))
+
+(defrecord Shape [position body])
+
 (defn make-grid
   ([] (make-grid (:rows grid-size) (:cols grid-size)))
+  ([data]
+    {:pre [(every? #(vector? %) data)
+           (every? true? (for [row data] (every? keyword? row)))
+           (let [counts (for [row data] (count row))
+                 expected-count (/ (reduce + counts) (count counts))]
+             (every? #(= expected-count %) counts))]}
+    (->Grid data))
   ([rows cols]
-    (vec (repeat rows
-                 (vec (repeat cols :empty))))))
+    (->Grid
+      (vec (repeat rows
+                   (vec (repeat cols :empty)))))))
 
 (defmacro ^:private iterate-over-grid 
   "Repeatedly executes body for each cell in the grid binding row and cell
@@ -45,8 +64,6 @@
                            y (cells->pixels row)]
                        (.setColor g (get colors color-name))
                        (.fillRect g x y cell-size-in-pixels cell-size-in-pixels))))
-
-(defrecord Shape [position body])
 
 (defn place-shape [grid shape]
   (with-local-vars [new-grid grid]
