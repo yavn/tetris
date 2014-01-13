@@ -8,16 +8,16 @@
   (let [thread-name (-> (Thread/currentThread) (.getName))]
     (println thread-name s)))
 
-(def ^:private shared-grid (atom nil))
-(def ^:private shared-shape (atom nil))
+(def shared-grid (atom nil))
+(def shared-shape (atom nil))
 
-(defn- make-panel []
+(defn make-panel []
   (proxy [JPanel] []
     (getPreferredSize [] grid/grid-dimension)
     (paintComponent [g]
       (grid/paint g (grid/place-shape @shared-grid @shared-shape)))))
 
-(defn- shape-update-pos [shape grid row-fn col-fn]
+(defn shape-update-pos [shape grid row-fn col-fn]
   {:pre [(= (class shape) clojure.lang.Atom)]}
   (swap! shape (fn [old-shape]
                  (let [shape-body (:body @shape)
@@ -29,7 +29,7 @@
                      (assoc old-shape :position new-pos)
                      old-shape)))))
 
-(defn- make-input-handler [panel]
+(defn make-input-handler [panel]
   (proxy [java.awt.event.KeyListener] []
     (keyPressed [e]
       (let [key-code (.getKeyCode e)]
@@ -40,13 +40,13 @@
     (keyReleased [_])
     (keyTyped [_])))
 
-(defn- make-update-task [panel]
+(defn make-update-task [panel]
   (proxy [java.util.TimerTask] []
     (run []
       (shape-update-pos shared-shape @shared-grid inc identity)
       (.repaint panel))))
 
-(defn- make-frame []
+(defn make-frame []
   (let [panel (make-panel)
         timer (java.util.Timer.)]
     (doto (JFrame. "Clojure Tetris")
@@ -67,7 +67,7 @@
       (.setVisible true))
     (.scheduleAtFixedRate timer (make-update-task panel) 1000 1000)))
 
-(defn- game-reset! []
+(defn game-reset! []
   (reset! shared-grid (grid/make-grid))
   (reset! shared-shape (grid/make-random-shape)))
   

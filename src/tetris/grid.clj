@@ -1,16 +1,16 @@
 (ns tetris.grid)
 
-(def ^:private grid-size { :rows 14 :cols 10 })
-(def ^:private cell-size-in-pixels 32)
+(def grid-size { :rows 14 :cols 10 })
+(def cell-size-in-pixels 32)
 
-(defn- cells->pixels [n]
+(defn cells->pixels [n]
   (* n cell-size-in-pixels))
 
 (def grid-dimension
   (java.awt.Dimension. (cells->pixels (:cols grid-size))
                        (cells->pixels (:rows grid-size))))
 
-(def ^:private colors 
+(def colors 
   { :empty   java.awt.Color/lightGray 
     :red     java.awt.Color/red
     :blue    java.awt.Color/blue
@@ -20,7 +20,7 @@
     :magenta java.awt.Color/magenta
     :orange  java.awt.Color/orange })
 
-(def ^:private shapes
+(def shapes
   [
    {:color :cyan
     :body ["XXXX"]}
@@ -69,7 +69,7 @@
       (vec (repeat rows
                    (vec (repeat cols :empty)))))))
 
-(defmacro ^:private iterate-over-grid 
+(defmacro iterate-over-grid 
   "Repeatedly executes body for each cell in the grid binding row and cell
   indices and cell value to the specified symbols. E.g.:
 
