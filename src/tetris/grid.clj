@@ -11,13 +11,38 @@
                        (cells->pixels (:rows grid-size))))
 
 (def ^:private colors 
-  { :empty java.awt.Color/lightGray 
-    :red java.awt.Color/red
-    :blue java.awt.Color/blue
-    :yellow java.awt.Color/yellow
-    :green java.awt.Color/green
-    :cyan java.awt.Color/cyan
-    :magenta java.awt.Color/magenta })
+  { :empty   java.awt.Color/lightGray 
+    :red     java.awt.Color/red
+    :blue    java.awt.Color/blue
+    :yellow  java.awt.Color/yellow
+    :green   java.awt.Color/green
+    :cyan    java.awt.Color/cyan
+    :magenta java.awt.Color/magenta
+    :orange  java.awt.Color/orange })
+
+(def ^:private shapes
+  [
+   {:color :cyan
+    :body ["XXXX"]}
+   {:color :blue
+    :body ["X__"
+           "XXX"]}
+   {:color :orange
+    :body ["__X"
+           "XXX"]}
+   {:color :yellow
+    :body ["XX"
+           "XX"]}
+   {:color :green
+    :body ["_XX"
+           "XX_"]}
+   {:color :magenta
+    :body ["_X_"
+           "XXX"]}
+   {:color :red
+    :body ["XX_"
+           "_XX"]}
+   ])
 
 (defprotocol GridProtocol
   (rows [this])
@@ -52,11 +77,9 @@
     (println \"Cell at [\" row-index col-index \"] has value\" cell))"
   
   [grid row col cell & body]
-  `(let [height# (count ~grid)
-         width# (count (first ~grid))]
-     (doseq [~row (range height#) ~col (range width#)]
-       (let [~cell (get-in ~grid [~row ~col])]
-         ~@body))))
+  `(doseq [~row (range (.rows ~grid)) ~col (range (.cols ~grid))]
+     (let [~cell (get-in (:data ~grid) [~row ~col])]
+       ~@body)))
 
 (defn paint [g grid]
   (iterate-over-grid grid row col color-name
@@ -66,14 +89,14 @@
                        (.fillRect g x y cell-size-in-pixels cell-size-in-pixels))))
 
 (defn place-shape [grid shape]
-  (with-local-vars [new-grid grid]
+  (with-local-vars [grid-data (:data grid)]
     (iterate-over-grid (:body shape) row col color-name
                        (let [[pos-row pos-col] (:position shape)
                              grid-pos [(+ row pos-row) (+ col pos-col)]]
                          (when (not= color-name :empty)
-                           (var-set new-grid
-                                 (assoc-in @new-grid grid-pos color-name)))))
-    @new-grid))
+                           (var-set grid-data
+                                 (assoc-in @grid-data grid-pos color-name)))))
+    (make-grid @grid-data)))
 
 (defn collision? [grid shape]
   (let [padded-shape (place-shape (make-grid) shape)
@@ -83,7 +106,8 @@
                           (map cells-colide? row1 row2)) grid padded-shape)))))
 
 (defn make-random-shape []
-  (let [X :red e :empty]
-    (->Shape [0 (/ (:cols grid-size) 2)]
-             [[X X X]
-              [e X e]])))
+  (let [position [0 (- (/ (:cols grid-size) 2) 1)]
+        shape (first (shuffle shapes))
+        body (vec (for [row (:body shape)] (vec (replace {\X (:color shape)
+                                                          \_ :empty} row))))]
+    (->Shape position (make-grid body))))
