@@ -39,3 +39,20 @@
              (is (= (:data (:body rotated-shape))
                     [[:red :red]
                      [:red :empty]])))))
+
+(deftest test-placement-collision
+  (testing "Shape placement with and without collision"
+           (let [shape (->Shape [0 0]
+                                (make-grid [[:red :red]
+                                            [:empty :empty]]))
+                 grid (make-grid [[:empty :blue]
+                                  [:empty :blue]])]
+             (is (collision? grid shape)))
+           (let [shape (->Shape [0 0]
+                                (make-grid [[:red :red]
+                                            [:empty :empty]]))
+                 grid (make-grid [[:empty :empty]
+                                  [:blue :blue]])]
+             (is (not (collision? grid shape))))))
+
+

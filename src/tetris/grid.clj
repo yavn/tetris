@@ -104,11 +104,11 @@
              (make-grid (vec (apply map (comp vec reverse vector) shape-grid-data))))))
 
 (defn collision? [grid shape]
-  (let [padded-shape (place-shape (make-grid) shape)
+  (let [padded-shape-grid (place-shape (make-grid) shape)
         cells-colide? (fn [c1 c2] (and (not= c1 :empty) (not= c2 :empty)))]
     (some (fn [x] x)
           (flatten (map (fn [row1 row2] 
-                          (map cells-colide? row1 row2)) grid padded-shape)))))
+                          (map cells-colide? row1 row2)) (:data grid) (:data padded-shape-grid))))))
 
 (defn make-random-shape []
   (let [position [0 (- (/ (:cols grid-size) 2) 1)]
