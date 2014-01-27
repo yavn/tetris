@@ -23,37 +23,43 @@
 (def shapes
   [
    {:color :cyan
-    :body ["XXXX"]}
+    :grid ["XXXX"]}
    {:color :blue
-    :body ["X__"
+    :grid ["X__"
            "XXX"]}
    {:color :orange
-    :body ["__X"
+    :grid ["__X"
            "XXX"]}
    {:color :yellow
-    :body ["XX"
+    :grid ["XX"
            "XX"]}
    {:color :green
-    :body ["_XX"
+    :grid ["_XX"
            "XX_"]}
    {:color :magenta
-    :body ["_X_"
+    :grid ["_X_"
            "XXX"]}
    {:color :red
-    :body ["XX_"
+    :grid ["XX_"
            "_XX"]}
    ])
 
 (defprotocol GridProtocol
+  (grid [this] "Cells in this grid, laid out in rows.")
   (rows [this])
   (cols [this]))
 
 (defrecord Grid [data]
   GridProtocol
+  (grid [_] data)
   (rows [_] (count data))
   (cols [_] (count (first data))))
 
-(defrecord Shape [position body])
+(defrecord Shape [position grid]
+  GridProtocol
+  (grid [_] (grid grid))
+  (rows [_] (rows grid))
+  (cols [_] (cols grid)))
 
 (defn make-grid
   ([] (make-grid (:rows grid-size) (:cols grid-size)))
@@ -77,7 +83,7 @@
     (println \"Cell at [\" row-index col-index \"] has value\" cell))"
   
   [grid row col cell & body]
-  `(doseq [~row (range (.rows ~grid)) ~col (range (.cols ~grid))]
+  `(doseq [~row (range (rows ~grid)) ~col (range (cols ~grid))]
      (let [~cell (get-in (:data ~grid) [~row ~col])]
        ~@body)))
 
@@ -90,7 +96,7 @@
 
 (defn place-shape [grid shape]
   (with-local-vars [grid-data (:data grid)]
-    (iterate-over-grid (:body shape) row col color-name
+    (iterate-over-grid (:grid shape) row col color-name
                        (let [[pos-row pos-col] (:position shape)
                              grid-pos [(+ row pos-row) (+ col pos-col)]]
                          (when (not= color-name :empty)
@@ -99,7 +105,7 @@
     (make-grid @grid-data)))
 
 (defn rotate-shape [shape]
-  (let [shape-grid-data (:data (:body shape))]
+  (let [shape-grid-data (:data (:grid shape))]
     (->Shape (:position shape)
              (make-grid (vec (apply map (comp vec reverse vector) shape-grid-data))))))
 
@@ -113,6 +119,6 @@
 (defn make-random-shape []
   (let [position [0 (- (/ (:cols grid-size) 2) 1)]
         shape (first (shuffle shapes))
-        body (vec (for [row (:body shape)] (vec (replace {\X (:color shape)
+        body (vec (for [row (:grid shape)] (vec (replace {\X (:color shape)
                                                           \_ :empty} row))))]
     (->Shape position (make-grid body))))

@@ -14,7 +14,7 @@
   (testing "Shape properties"
            (let [shape (make-random-shape)]
              (is (= (class shape) tetris.grid.Shape))
-             (is (= (class (:body shape)) tetris.grid.Grid))
+             (is (= (class (:grid shape)) tetris.grid.Grid))
              (is (vector? (:position shape)))
              (is (= (count (:position shape)) 2)))))
 
@@ -36,7 +36,7 @@
                                         [:red :red]])
                  shape (->Shape [0 0] shape-body)
                  rotated-shape (rotate-shape shape)]
-             (is (= (:data (:body rotated-shape))
+             (is (= (:data (:grid rotated-shape))
                     [[:red :red]
                      [:red :empty]])))))
 

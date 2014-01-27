@@ -20,11 +20,11 @@
 (defn shape-update-pos [shape grid row-fn col-fn]
   {:pre [(= (class shape) clojure.lang.Atom)]}
   (swap! shape (fn [old-shape]
-                 (let [shape-body (:body @shape)
+                 (let [shape-grid (:grid @shape)
                        [row col] (:position old-shape)
                        new-pos [(row-fn row) (col-fn col)]
-                       in-bounds? (and (<= 0 (new-pos 1) (- (.cols grid) (.cols shape-body)))
-                                       (<= (new-pos 0) (- (.rows grid) (.rows shape-body))))]
+                       in-bounds? (and (<= 0 (new-pos 1) (- (grid/cols grid) (grid/cols shape-grid)))
+                                       (<= (new-pos 0) (- (grid/rows grid) (grid/rows shape-grid))))]
                    (if in-bounds?
                      (assoc old-shape :position new-pos)
                      old-shape)))))
