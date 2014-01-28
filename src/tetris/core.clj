@@ -42,7 +42,25 @@
     :grid ["XX_"
            "_XX"]}
    ])
-  
+
+(defn make-grid [rows cols]
+  (repeat rows (repeat cols :empty)))
+
+(defn grid-rows [grid]
+  (count grid))
+
+(defn grid-cols [grid]
+  (count (first grid)))
+
+(defn make-grid-with-shape [shape]
+  (let [color (:color shape)
+        grid (:grid shape)]
+  (for [row grid] (replace {\X color, \_ :empty}
+                           row))))
+
+(defn rotate-grid [grid]
+  grid)
+
 (defn -main
  [& args]
  ;; work around dangerous default behaviour in Clojure
