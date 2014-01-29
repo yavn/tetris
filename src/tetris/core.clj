@@ -106,6 +106,28 @@
   ;;
   ;; Wow. So little code to accomplish so much :)
 
+(defn make-block
+  "Create a tetris block."
+  [position grid]
+  ;; This is just a grid (which defines the shape) with a position (so we know
+  ;; where to place it in the game area).
+  {:position position :grid grid})
+  
+(defn crop-grid
+  "Return a cropped grid by removing a number of rows and columns from the
+  top-left side of the grid."
+  [grid rows cols]
+  (for [r (drop rows grid)]  ; first we drop a number of rows
+    (drop cols r)))          ; then drop a number of cols from each row 'r'
+
+(defn place-block-in-grid
+  "Create a new grid that has the block placed in a correct position.
+  Returns nil if it's not possible to place the block."
+  [grid block]
+  (let [[row col] (:position block)
+        cropped-grid (crop-grid grid row col)]
+    ))
+
 (defn -main
  [& args]
  ;; work around dangerous default behaviour in Clojure
