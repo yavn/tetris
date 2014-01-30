@@ -212,10 +212,24 @@
         nil
         result-grid))))
 
+(defn paint-grid
+  ;; g is java.awt.Graphics2D object
+  [g grid]
+  (doseq [[idx-row grid-row] (indexed grid)]
+    (doseq [[idx-col cell-color] (indexed grid-row)]
+      (let [x (cells->pixels idx-col)
+            y (cells->pixels idx-row)]
+      (.setColor g (get colors cell-color))
+      (.fillRect g x y cell-size-in-pixels cell-size-in-pixels)))))
+
 (defn make-game-panel []
   (proxy [JPanel ActionListener KeyListener] []
     (paintComponent [g]
-      (proxy-super paintComponent g))
+      (proxy-super paintComponent g)
+      ;; Flatten the block onto the grid so it can be drawn together.
+      ;; Just as in GIMP -- block is "a layer" :)
+      (let [game-grid (place-block-in-grid @state-grid @state-block)]
+        (paint-grid g game-grid)))
     (actionPerformed [e]
       ;; frame update goes here
       (.repaint this))
