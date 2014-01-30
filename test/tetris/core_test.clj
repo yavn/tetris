@@ -89,3 +89,12 @@
          :red))
   (is (= (place-cell :red :blue)
          :collision)))
+
+(deftest test-is-block-in-bounds
+  (let [grid [[:empty]]
+        block-grid [[:red]]]
+    (is (true? (block-in-bounds? grid (make-block [0 0] block-grid))))
+    (is (false? (block-in-bounds? grid (make-block [-1 0] block-grid))))
+    (is (false? (block-in-bounds? grid (make-block [0 -1] block-grid))))
+    (is (false? (block-in-bounds? grid (make-block [1 0] block-grid))))
+    (is (false? (block-in-bounds? grid (make-block [0 1] block-grid))))))

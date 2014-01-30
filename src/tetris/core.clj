@@ -146,6 +146,17 @@
       c1
       :collision)))
   
+(defn block-in-bounds?
+  "Returns true if the block is inside the bounds of the grid."
+  [grid block]
+  (let [[row col] (:position block)]
+    (if (or (< row 0) (< col 0))
+      false
+      (let [row-end (+ row (grid-rows (:grid block)))
+            col-end (+ col (grid-cols (:grid block)))]
+        (and (<= row-end (grid-rows grid))
+             (<= col-end (grid-cols grid)))))))
+
 (defn place-block-in-grid
   "Create a new grid that has the block placed in a correct position.
   Returns nil if it's not possible to place the block."
