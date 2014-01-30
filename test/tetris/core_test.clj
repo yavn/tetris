@@ -49,9 +49,8 @@
   (let [block-grid (make-grid-with-shape {:color :blue
                                           :grid ["X"]})
         block (make-block [0 0] block-grid)
-        game-grid (make-grid 1 1)
-        game-grid-with-block (place-block-in-grid game-grid block)]
-    (is (= game-grid-with-block
+        game-grid (make-grid 1 1)]
+    (is (= (place-block-in-grid game-grid block)
            [[:blue]]))))
 
 (deftest test-collision-when-placing-a-block
@@ -83,3 +82,8 @@
            [[9]])
         "Should drop everything but the lower-right element.")))
         
+(deftest test-indexed
+  (is (= (indexed [:a :b])
+         [[0 :a] [1 :b]]))
+  (is (= (indexed [[:a :b][:c :d]])
+         [[0 [:a :b]][1 [:c :d]]])))

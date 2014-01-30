@@ -120,14 +120,23 @@
   (for [r (drop rows grid)]  ; first we drop a number of rows
     (drop cols r)))          ; then drop a number of cols from each row 'r'
 
+(defn indexed
+  "Add an index to each element of the collection."
+  [coll]
+  (map vector (range (count coll)) coll))
+
 (defn place-block-in-grid
   "Create a new grid that has the block placed in a correct position.
   Returns nil if it's not possible to place the block."
   [grid block]
-  (let [[row col] (:position block)
-        cropped-grid (crop-grid grid row col)]
-    ))
-
+  (let [[b-row b-col] (:position block)]
+    (for [[row grid-row] (indexed grid)]
+      (for [[col cell] (indexed grid-row)]
+        (let [[skip-rows skip-cols] [(- row b-row) (- col b-col)]
+              new-cell (or (->> (:grid block) (drop skip-rows) first (drop skip-cols) first)
+                           :empty)]                           
+          (if (not= new-cell :empty) new-cell cell))))))
+        
 (defn -main
  [& args]
  ;; work around dangerous default behaviour in Clojure
