@@ -56,11 +56,16 @@
 (deftest test-collision-when-placing-a-block
   (let [block-grid [[:red :red]
                     [:red :red]]
-        game-grid (make-grid 2 3)]
+        game-grid [[:empty :empty :blue]
+                   [:empty :empty :empty]]]
     (is (= (place-block-in-grid game-grid (make-block [0 0] block-grid))
-           [[:red :red :empty]
+           [[:red :red :blue]
             [:red :red :empty]])
-        "A small block should fit comfortably in an empty grid.")))
+        "Block should fit in the grid.")
+    (is (= (place-block-in-grid game-grid (make-block [0 1] block-grid))
+           [[:empty :empty :blue]
+            [:empty :empty :empty]])
+        "There's not enough room to place the block.")))
 
 (deftest test-indexed
   (is (= (indexed [:a :b])
@@ -72,4 +77,6 @@
   (is (= (get-in-grid [[1 2 3][4 5 6]] [1 2])
          6))
   (is (= (get-in-grid [[1]] [1 0])
+         :empty))
+  (is (= (get-in-grid [[1]] [-1 0])
          :empty)))

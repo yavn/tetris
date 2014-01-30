@@ -123,11 +123,13 @@
   a nested collection ordinary get-in wouldn't work. Returns :empty
   if indices are out of bounds."
   [grid [skip-rows skip-cols]]
-  ;; ->> is a cool threading form which takes the first argument 'grid'
-  ;;   and runs it through consecutive functions. Really nice when
-  ;;   dealing with step-by-step transformations.
-  (or (->> grid (drop skip-rows) first (drop skip-cols) first)
-      :empty))
+  (if (or (< skip-rows 0) (< skip-cols 0))
+    :empty
+	  ;; ->> is a cool threading form which takes the first argument 'grid'
+	  ;;   and runs it through consecutive functions. Really nice when
+	  ;;   dealing with step-by-step transformations.
+    (or (->> grid (drop skip-rows) first (drop skip-cols) first)
+        :empty)))
   ;; Logical or in Clojure returns the first argument that evaluates to
   ;; true. We can use that as a neat coalesce function (return first
   ;; non-nil value) because nil is false and everything else is true.
