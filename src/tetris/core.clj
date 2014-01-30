@@ -8,11 +8,12 @@
 
 (ns tetris.core
   (:gen-class)
-  (:import [javax.swing JFrame JPanel]
-           [java.awt.event KeyEvent]))
+  (:import [javax.swing JFrame JPanel Timer]
+           [java.awt.event KeyEvent ActionListener KeyListener WindowListener]))
 
 (def game-grid-size { :rows 14 :cols 10 })
 (def cell-size-in-pixels 32)
+(def game-time-step-millis 1000)
 
 (defn cells->pixels [n]
   (* n cell-size-in-pixels))
@@ -188,7 +189,43 @@
         nil
         result-grid))))
 
+(defn make-game-panel []
+  (proxy [JPanel ActionListener KeyListener] []
+    (paintComponent [g]
+      (proxy-super paintComponent g))
+    (actionPerformed [e]
+      ;; frame update goes here
+      (.repaint this))
+    (getPreferredSize []
+      (java.awt.Dimension. (cells->pixels (:cols game-grid-size))
+                           (cells->pixels (:rows game-grid-size))))
+    (keyPressed [e])
+    (keyReleased [e])
+    (keyTyped [e])))
+
 (defn -main
  [& args]
  ;; work around dangerous default behaviour in Clojure
- (alter-var-root #'*read-eval* (constantly false)))
+ (alter-var-root #'*read-eval* (constantly false))
+ (let [frame (JFrame. "Clojure Tetris")
+       panel (make-game-panel)
+       timer (Timer. game-time-step-millis panel)]
+   (doto panel
+     (.addKeyListener panel))
+   (doto frame
+     (.add panel)
+     (.pack)
+     (.addWindowListener
+       (proxy [WindowListener] []
+         (windowActivated [e])
+         (windowClosed [e]
+           (.stop timer))
+         (windowClosing [e])
+         (windowDeactivated [e])
+         (windowDeiconified [e])
+         (windowIconified [e])
+         (windowOpened [e])))
+     (.setDefaultCloseOperation JFrame/DISPOSE_ON_CLOSE)
+     (.setVisible true))
+   (.start timer)))
+   
