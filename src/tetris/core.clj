@@ -134,6 +134,18 @@
   ;; true. We can use that as a neat coalesce function (return first
   ;; non-nil value) because nil is false and everything else is true.
 
+(defn place-cell
+  "Takes two grid cells and determines the result of merging them
+  together. This is basically what happens when you place a block
+  in the grid. If a cell is already occupied (i.e. not :empty)
+  :collision will be returned."
+  [c1 c2]
+  (if (= c1 :empty)
+    c2
+    (if (= c2 :empty)
+      c1
+      :collision)))
+  
 (defn place-block-in-grid
   "Create a new grid that has the block placed in a correct position.
   Returns nil if it's not possible to place the block."
@@ -141,22 +153,30 @@
   ;; Uhm, not sure if there's a nicer way to do this that is both
   ;; efficient and idiomatic.
   ;;
-  ;; These are the coordinates of the block in the grid.
-  (let [[b-row b-col] (:position block)]
-    ;; We use nested fors to add indices to each grid cell.
-    (for [[row grid-row] (indexed grid)]
-      (for [[col cell] (indexed grid-row)]
-        ;; At this point we have bound [row col cell] where 'row' and 'col' are
-        ;; indices into grid and 'cell' is the actual value in there.
-        (let [coords [(- row b-row) (- col b-col)]
-              new-cell (get-in-grid (:grid block) coords)]
-          ;; coords are row/col indices transformed into block's grid
-          ;; frame of reference.
-          ;; Now we only need to read block's cell and write it into the new
-          ;; grid if it's not nil nor :empty. Otherwise the old cell value
-          ;; is preserved.
-          (if (not= new-cell :empty) new-cell cell))))))
-        
+  ;; letfn lets us define local functions
+  (letfn [(place-with-collisions
+            [grid block]
+            ;; These are the coordinates of the block in the grid.
+            (let [[b-row b-col] (:position block)]
+              ;; We use nested fors to add indices to each grid cell.
+              (for [[row grid-row] (indexed grid)]
+                (for [[col cell] (indexed grid-row)]
+                  ;; At this point we have bound [row col cell] where 'row' and 'col' are
+                  ;; indices into grid and 'cell' is the actual value in there.
+                  (let [coords [(- row b-row) (- col b-col)]
+                        new-cell (get-in-grid (:grid block) coords)]
+                    ;; coords are row/col indices transformed into block's grid
+                    ;; frame of reference.
+                    ;; Now we only need to read block's cell and write it into the new
+                    ;; grid if it's not nil nor :empty. Otherwise the old cell value
+                    ;; is preserved.
+                    (place-cell cell new-cell))))))]    
+    (let [result-grid (place-with-collisions grid block)]
+      ;; A set #{} can act as a predicate. Check some's doc for more info.
+      (if (some #{:collision} (flatten result-grid))
+        nil
+        result-grid))))
+
 (defn -main
  [& args]
  ;; work around dangerous default behaviour in Clojure

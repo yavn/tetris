@@ -63,8 +63,7 @@
             [:red :red :empty]])
         "Block should fit in the grid.")
     (is (= (place-block-in-grid game-grid (make-block [0 1] block-grid))
-           [[:empty :empty :blue]
-            [:empty :empty :empty]])
+           nil)
         "There's not enough room to place the block.")))
 
 (deftest test-indexed
@@ -80,3 +79,13 @@
          :empty))
   (is (= (get-in-grid [[1]] [-1 0])
          :empty)))
+
+(deftest test-place-cell
+  (is (= (place-cell :empty :empty)
+         :empty))
+  (is (= (place-cell :red :empty)
+         :red))
+  (is (= (place-cell :empty :red)
+         :red))
+  (is (= (place-cell :red :blue)
+         :collision)))
