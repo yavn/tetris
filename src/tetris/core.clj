@@ -15,8 +15,14 @@
 (def cell-size-in-pixels 32)
 (def game-time-step-millis 1000)
 
-(defn cells->pixels [n]
-  (* n cell-size-in-pixels))
+;; Mutable game state. We choose refs because the grid and the falling
+;; block must change in sync (e.g. block gets "flattened" onto the grid
+;; and a new block is created).
+;; Technically syncing is not needed because everything will happen on
+;; the same thread (AWT-Event queue).
+
+(def state-grid (ref nil))
+(def state-block (ref nil))
 
 (def colors
   { :empty   java.awt.Color/lightGray 
@@ -53,6 +59,9 @@
    {:color :red
     :grid ["XX_"
            "_XX"]}])
+
+(defn cells->pixels [n]
+  (* n cell-size-in-pixels))
 
 ;; Game data structures are typical Clojure collections.
 ;; We define a number of interface functions to manipulate these
@@ -113,6 +122,20 @@
   ;; This is just a grid (which defines the shape) with a position (so we know
   ;; where to place it in the game area).
   {:position position :grid grid})
+
+(defn make-random-block
+  "Picks one of the shapes and creates a block out of it,
+  placing it in the middle of zero row."
+  []
+  (let [random-shape (first (shuffle shapes))
+        grid (make-grid-with-shape random-shape)
+        block-width (grid-cols grid)
+        ;; (long ...) is called a type coercion (in other words, a cast)
+        ;; and is typically best avoided. Possible rare use cases are
+        ;; performance improvements, or like in this case getting rid of
+        ;; odd numbers.
+        middle-col (long (/ (- (:cols game-grid-size) block-width) 2))]
+    (make-block [0 middle-col] grid)))
   
 (defn indexed
   "Add an index to each element of the collection."
@@ -203,6 +226,12 @@
     (keyReleased [e])
     (keyTyped [e])))
 
+(defn reset-game! []
+  (dosync
+    (ref-set state-grid (make-grid (:rows game-grid-size)
+                                   (:cols game-grid-size)))
+    (ref-set state-block (make-random-block))))
+
 (defn -main
  [& args]
  ;; work around dangerous default behaviour in Clojure
@@ -227,5 +256,6 @@
          (windowOpened [e])))
      (.setDefaultCloseOperation JFrame/DISPOSE_ON_CLOSE)
      (.setVisible true))
+   (reset-game!)
    (.start timer)))
    
