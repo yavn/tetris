@@ -62,28 +62,14 @@
             [:red :red :empty]])
         "A small block should fit comfortably in an empty grid.")))
 
-(deftest test-crop-grid
-  (let [grid [[1 2 3]
-              [4 5 6]
-              [7 8 9]]]
-    (is (= (crop-grid grid 0 0)
-           grid)
-        "Nothing cropped, should yield the same grid.")
-    (is (= (crop-grid grid 1 0)
-           [[4 5 6]
-            [7 8 9]])
-        "Should drop the first row.")
-    (is (= (crop-grid grid 0 1)
-           [[2 3]
-            [5 6]
-            [8 9]])
-        "Should drop the first column.")
-    (is (= (crop-grid grid 2 2)
-           [[9]])
-        "Should drop everything but the lower-right element.")))
-        
 (deftest test-indexed
   (is (= (indexed [:a :b])
          [[0 :a] [1 :b]]))
   (is (= (indexed [[:a :b][:c :d]])
          [[0 [:a :b]][1 [:c :d]]])))
+
+(deftest test-get-in-grid
+  (is (= (get-in-grid [[1 2 3][4 5 6]] [1 2])
+         6))
+  (is (= (get-in-grid [[1]] [1 0])
+         :empty)))

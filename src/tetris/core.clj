@@ -54,7 +54,7 @@
            "_XX"]}])
 
 ;; Game data structures are typical Clojure collections.
-;; I define a number of interface functions to manipulate these
+;; We define a number of interface functions to manipulate these
 ;; structures, e.g. create, query etc.
 ;; I'm not sure if using records or something else is preferable.
 
@@ -113,28 +113,46 @@
   ;; where to place it in the game area).
   {:position position :grid grid})
   
-(defn crop-grid
-  "Return a cropped grid by removing a number of rows and columns from the
-  top-left side of the grid."
-  [grid rows cols]
-  (for [r (drop rows grid)]  ; first we drop a number of rows
-    (drop cols r)))          ; then drop a number of cols from each row 'r'
-
 (defn indexed
   "Add an index to each element of the collection."
   [coll]
   (map vector (range (count coll)) coll))
 
+(defn get-in-grid
+  "Same as get-in but works for a grid. If grid is represented as
+  a nested collection ordinary get-in wouldn't work. Returns :empty
+  if indices are out of bounds."
+  [grid [skip-rows skip-cols]]
+  ;; ->> is a cool threading form which takes the first argument 'grid'
+  ;;   and runs it through consecutive functions. Really nice when
+  ;;   dealing with step-by-step transformations.
+  (or (->> grid (drop skip-rows) first (drop skip-cols) first)
+      :empty))
+  ;; Logical or in Clojure returns the first argument that evaluates to
+  ;; true. We can use that as a neat coalesce function (return first
+  ;; non-nil value) because nil is false and everything else is true.
+
 (defn place-block-in-grid
   "Create a new grid that has the block placed in a correct position.
   Returns nil if it's not possible to place the block."
   [grid block]
+  ;; Uhm, not sure if there's a nicer way to do this that is both
+  ;; efficient and idiomatic.
+  ;;
+  ;; These are the coordinates of the block in the grid.
   (let [[b-row b-col] (:position block)]
+    ;; We use nested fors to add indices to each grid cell.
     (for [[row grid-row] (indexed grid)]
       (for [[col cell] (indexed grid-row)]
-        (let [[skip-rows skip-cols] [(- row b-row) (- col b-col)]
-              new-cell (or (->> (:grid block) (drop skip-rows) first (drop skip-cols) first)
-                           :empty)]                           
+        ;; At this point we have bound [row col cell] where 'row' and 'col' are
+        ;; indices into grid and 'cell' is the actual value in there.
+        (let [coords [(- row b-row) (- col b-col)]
+              new-cell (get-in-grid (:grid block) coords)]
+          ;; coords are row/col indices transformed into block's grid
+          ;; frame of reference.
+          ;; Now we only need to read block's cell and write it into the new
+          ;; grid if it's not nil nor :empty. Otherwise the old cell value
+          ;; is preserved.
           (if (not= new-cell :empty) new-cell cell))))))
         
 (defn -main
