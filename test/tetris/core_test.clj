@@ -108,4 +108,19 @@
            [1 0]))
     (is (= (:position (block-move block [0 1]))
            [1 2]))))
-         
+
+(deftest test-update-block
+  ;; This function is a bit complicated but the contract is fairly simple:
+  ;; Do some kind of an update on the block and return the new block.
+  ;; If the new block is not valid (e.g. collides with grid or is out of bounds
+  ;; return the old (unchanged) block instead.
+  (let [block (make-block [0 0] [[:red :red]])
+        grid (make-grid 2 2)]
+    (is (= (update-block block block-rotate grid)
+           (make-block [0 0] [[:red]
+                              [:red]]))
+        "There's enough room, so it should be possible to rotate the block.")
+    (is (= (update-block block block-move grid [0 1])
+           block)
+        "Moving block to the right moves it off bounds, so this should fail i.e. yield the original block.")))
+       
