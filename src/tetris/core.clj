@@ -11,18 +11,28 @@
   (:import [javax.swing JFrame JPanel Timer]
            [java.awt.event KeyEvent ActionListener KeyListener WindowListener]))
 
+;; This program probably calls out for a few namespaces (files) to organize
+;; the source. However, for the sake of simplicity I decided not to do that
+;; and just dump everything in a single file...
+
 (def game-grid-size { :rows 14 :cols 10 })
 (def cell-size-in-pixels 32)
 (def game-time-step-millis 1000)
 
 ;; Mutable game state. We choose refs because the grid and the falling
 ;; block must change in sync (e.g. block gets "flattened" onto the grid
-;; and a new block is created).
-;; Technically syncing is not needed because everything will happen on
-;; the same thread (AWT-Event queue).
+;; and a new block is then created).
+;; In practice syncing is not needed because everything will happen on
+;; the same thread anyway (AWT-Event queue). So in pure Java we could've gotten
+;; away with not using any synchronization. Clojure however forces us to
+;; choose mutability semantics.
 
 (def state-grid (ref nil))
 (def state-block (ref nil))
+
+;; Refs must be updated inside a transaction (the famous STM). This constitutes
+;; a synchronous (blocks the calling thread) coordinated (all refs inside
+;; the transaction represent the same point in time) update.
 
 (def colors
   { :empty   java.awt.Color/lightGray 
@@ -136,7 +146,13 @@
         ;; odd numbers.
         middle-col (long (/ (- (:cols game-grid-size) block-width) 2))]
     (make-block [0 middle-col] grid)))
-  
+
+(defn block-move
+  "Moves a block to a new position by adding the displacement vector."
+  [block displacement]
+  (let [new-position (map + (:position block) displacement)]
+    (assoc block :position new-position)))
+
 (defn indexed
   "Add an index to each element of the collection."
   [coll]
@@ -188,29 +204,48 @@
   ;; Uhm, not sure if there's a nicer way to do this that is both
   ;; efficient and idiomatic.
   ;;
-  ;; letfn lets us define local functions
-  (letfn [(place-with-collisions
-            [grid block]
-            ;; These are the coordinates of the block in the grid.
-            (let [[b-row b-col] (:position block)]
-              ;; We use nested fors to add indices to each grid cell.
-              (for [[row grid-row] (indexed grid)]
-                (for [[col cell] (indexed grid-row)]
-                  ;; At this point we have bound [row col cell] where 'row' and 'col' are
-                  ;; indices into grid and 'cell' is the actual value in there.
-                  (let [coords [(- row b-row) (- col b-col)]
-                        new-cell (get-in-grid (:grid block) coords)]
-                    ;; coords are row/col indices transformed into block's grid
-                    ;; frame of reference.
-                    ;; Now we only need to read block's cell and write it into the new
-                    ;; grid if it's not nil nor :empty. Otherwise the old cell value
-                    ;; is preserved.
-                    (place-cell cell new-cell))))))]    
-    (let [result-grid (place-with-collisions grid block)]
-      ;; A set #{} can act as a predicate. Check some's doc for more info.
-      (if (some #{:collision} (flatten result-grid))
-        nil
-        result-grid))))
+  ;; Don't bother if block is outside the bounds. In this case when form will
+  ;; evaluate to nil.
+  (when (block-in-bounds? grid block)
+    ;; letfn lets us define local functions
+    (letfn [(place-with-collisions
+              [grid block]
+              ;; These are the coordinates of the block in the grid.
+              (let [[b-row b-col] (:position block)]
+                ;; We use nested fors to add indices to each grid cell.
+                (for [[row grid-row] (indexed grid)]
+                  (for [[col cell] (indexed grid-row)]
+                    ;; At this point we have bound [row col cell] where 'row' and 'col' are
+                    ;; indices into grid and 'cell' is the actual value in there.
+                    (let [coords [(- row b-row) (- col b-col)]
+                          new-cell (get-in-grid (:grid block) coords)]
+                      ;; coords are row/col indices transformed into block's grid
+                      ;; frame of reference.
+                      ;; Now we only need to merge the cells. If neither is :empty
+                      ;; a :collision will be returned.
+                      (place-cell cell new-cell))))))]
+      (let [result-grid (place-with-collisions grid block)]
+        ;; A set #{} can act as a predicate. Check some's doc for more info.
+        (if (some #{:collision} (flatten result-grid))
+          nil
+          result-grid)))))
+
+(defn update-block-position
+  "This is an update function for a ref. Check 'alter' doc for info."
+  [old-block grid displacement]
+  (let [new-block (block-move old-block displacement)]
+    ;; If condition evaluates to nil (failed to place the block) keep
+    ;; using the old (not modified) block.
+    (if (place-block-in-grid grid new-block)
+      new-block
+      old-block)))
+
+(defn handle-key [key-code]
+  (cond
+    (= key-code KeyEvent/VK_LEFT)
+      (dosync (alter state-block update-block-position @state-grid [0 -1]))
+    (= key-code KeyEvent/VK_RIGHT)
+      (dosync (alter state-block update-block-position @state-grid [0 1]))))
 
 (defn paint-grid
   ;; g is java.awt.Graphics2D object
@@ -225,6 +260,8 @@
 (defn make-game-panel []
   (proxy [JPanel ActionListener KeyListener] []
     (paintComponent [g]
+      ;; proxy-super is like Java's super call. Here it means we invoke
+      ;; JPanel's implementation of paintComponent.
       (proxy-super paintComponent g)
       ;; Flatten the block onto the grid so it can be drawn together.
       ;; Just as in GIMP -- block is "a layer" :)
@@ -232,15 +269,18 @@
         (paint-grid g game-grid)))
     (actionPerformed [e]
       ;; frame update goes here
+      ;; Proxy defines an implicit 'this' symbol.
       (.repaint this))
     (getPreferredSize []
       (java.awt.Dimension. (cells->pixels (:cols game-grid-size))
                            (cells->pixels (:rows game-grid-size))))
-    (keyPressed [e])
+    (keyPressed [e]
+      (handle-key (.getKeyCode e))
+      (.repaint this))
     (keyReleased [e])
     (keyTyped [e])))
 
-(defn reset-game! []
+(defn reset-game []
   (dosync
     (ref-set state-grid (make-grid (:rows game-grid-size)
                                    (:cols game-grid-size)))
@@ -254,11 +294,15 @@
        panel (make-game-panel)
        timer (Timer. game-time-step-millis panel)]
    (doto panel
+     (.setFocusable true)
      (.addKeyListener panel))
    (doto frame
      (.add panel)
      (.pack)
      (.addWindowListener
+       ;; proxy is an amazing form that lets us succinctly extend a class
+       ;; and implement interfaces. This makes writing Java in Clojure more
+       ;; pleasant than writing Java in Java! Thank you, Clojure :)
        (proxy [WindowListener] []
          (windowActivated [e])
          (windowClosed [e]
@@ -270,6 +314,6 @@
          (windowOpened [e])))
      (.setDefaultCloseOperation JFrame/DISPOSE_ON_CLOSE)
      (.setVisible true))
-   (reset-game!)
+   (reset-game)
    (.start timer)))
    

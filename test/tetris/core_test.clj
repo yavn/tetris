@@ -64,7 +64,10 @@
         "Block should fit in the grid.")
     (is (= (place-block-in-grid game-grid (make-block [0 1] block-grid))
            nil)
-        "There's not enough room to place the block.")))
+        "There's not enough room to place the block.")
+    (is (= (place-block-in-grid game-grid (make-block [1 0] block-grid))
+           nil)
+        "Block is outside the bounds of the grid.")))
 
 (deftest test-indexed
   (is (= (indexed [:a :b])
@@ -98,3 +101,11 @@
     (is (false? (block-in-bounds? grid (make-block [0 -1] block-grid))))
     (is (false? (block-in-bounds? grid (make-block [1 0] block-grid))))
     (is (false? (block-in-bounds? grid (make-block [0 1] block-grid))))))
+
+(deftest test-move-block
+  (let [block (make-block [1 1] [[:red]])]
+    (is (= (:position (block-move block [0 -1]))
+           [1 0]))
+    (is (= (:position (block-move block [0 1]))
+           [1 2]))))
+         
