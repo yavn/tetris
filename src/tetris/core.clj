@@ -253,12 +253,20 @@
       new-block
       old-block)))
 
+(defn update-game
+  "Game logic update. Makes the block fall, etc."
+  []
+  (dosync
+    (alter state-block update-block block-move @state-grid [1 0])))
+
 (defn handle-key [key-code]
   (cond
     (= key-code KeyEvent/VK_LEFT)
       (dosync (alter state-block update-block block-move @state-grid [0 -1]))
     (= key-code KeyEvent/VK_RIGHT)
-      (dosync (alter state-block update-block block-move @state-grid [0 1]))))
+      (dosync (alter state-block update-block block-move @state-grid [0 1]))
+    (= key-code KeyEvent/VK_UP)
+      (dosync (alter state-block update-block block-rotate @state-grid))))
 
 (defn paint-grid
   ;; g is java.awt.Graphics2D object
@@ -281,7 +289,7 @@
       (let [game-grid (place-block-in-grid @state-grid @state-block)]
         (paint-grid g game-grid)))
     (actionPerformed [e]
-      ;; frame update goes here
+      (update-game)
       ;; Proxy defines an implicit 'this' symbol.
       (.repaint this))
     (getPreferredSize []
