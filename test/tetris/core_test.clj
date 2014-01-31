@@ -25,7 +25,7 @@
                :grid ["XX_"
                       "_XX"]}
         grid (make-grid-with-shape shape)
-        rotated-grid (rotate-grid grid)]
+        rotated-grid (grid-rotate grid)]
     (is (= grid
            [[:red :red :empty]
             [:empty :red :red]]))
@@ -34,7 +34,7 @@
             [:red :red]
             [:red :empty]]))
     (is (= grid
-           (-> grid rotate-grid rotate-grid rotate-grid rotate-grid))
+           (-> grid grid-rotate grid-rotate grid-rotate grid-rotate))
         "We expect a 360 deg rotation to yield the original grid.")))
 
 (deftest test-create-block

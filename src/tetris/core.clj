@@ -103,7 +103,7 @@
   (for [row grid] (replace {\X color, \_ :empty}
                            row))))
 
-(defn rotate-grid
+(defn grid-rotate
   "Perform a clockwise rotation of the grid. This is similar to matrix
   transposition but also reverses the order of the rows."
   [grid]
@@ -152,6 +152,11 @@
   [block displacement]
   (let [new-position (map + (:position block) displacement)]
     (assoc block :position new-position)))
+
+(defn block-rotate
+  "Rotates the block clockwise."
+  [block]
+  (assoc block :grid (grid-rotate (:grid block))))
 
 (defn indexed
   "Add an index to each element of the collection."
@@ -230,10 +235,18 @@
           nil
           result-grid)))))
 
-(defn update-block-position
-  "This is an update function for a ref. Check 'alter' doc for info."
-  [old-block grid displacement]
-  (let [new-block (block-move old-block displacement)]
+(defn update-block
+  ;; This is an update function for a ref. Check 'alter' doc for info.
+  "Applies function f to the block and optional arguments with
+    (apply f old-block args)
+  If the updated block can be placed in the grid without collision then the
+  new block is returned. Otherwise the old block is returned."
+  [old-block f grid & args]
+  ;; This is a nice example of a higher-order function (a function that takes
+  ;; another function as an argument).
+  ;; update-block encapsulates a common algorithm (updated block must fit without
+  ;; collisions in the grid), but the specific update algorithm is defined by f.
+  (let [new-block (apply f old-block args)]
     ;; If condition evaluates to nil (failed to place the block) keep
     ;; using the old (not modified) block.
     (if (place-block-in-grid grid new-block)
@@ -243,9 +256,9 @@
 (defn handle-key [key-code]
   (cond
     (= key-code KeyEvent/VK_LEFT)
-      (dosync (alter state-block update-block-position @state-grid [0 -1]))
+      (dosync (alter state-block update-block block-move @state-grid [0 -1]))
     (= key-code KeyEvent/VK_RIGHT)
-      (dosync (alter state-block update-block-position @state-grid [0 1]))))
+      (dosync (alter state-block update-block block-move @state-grid [0 1]))))
 
 (defn paint-grid
   ;; g is java.awt.Graphics2D object
