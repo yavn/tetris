@@ -15,7 +15,7 @@
 ;; the source. However, for the sake of simplicity I decided not to do that
 ;; and just dump everything in a single file...
 
-(def game-grid-size { :rows 14 :cols 10 })
+(def game-grid-size { :rows 16 :cols 12 })
 (def cell-size-in-pixels 32)
 (def game-time-step-millis 1000)
 
@@ -253,11 +253,25 @@
       new-block
       old-block)))
 
+(defn can-block-fall-in-grid?
+  "Moves the block one row lower. If it can't fall more, nil is returned and the
+  original block should be placed at its current position."
+  [grid block]
+  (not= block (update-block block block-move grid [1 0])))
+
 (defn update-game
   "Game logic update. Makes the block fall, etc."
   []
   (dosync
-    (alter state-block update-block block-move @state-grid [1 0])))
+    (if (can-block-fall-in-grid? @state-grid @state-block)
+      (alter state-block update-block block-move @state-grid [1 0])
+      (do
+        (ref-set state-grid (place-block-in-grid @state-grid @state-block))
+        (ref-set state-block (make-random-block))))))
+
+;; A forward declaration. Timer is defined later, but we use it in handle-key.
+;; This is a syntactic sugar for (def foo) i.e. without specifying foo's value.
+(declare game-timer)
 
 (defn handle-key [key-code]
   (cond
@@ -266,7 +280,14 @@
     (= key-code KeyEvent/VK_RIGHT)
       (dosync (alter state-block update-block block-move @state-grid [0 1]))
     (= key-code KeyEvent/VK_UP)
-      (dosync (alter state-block update-block block-rotate @state-grid))))
+      (dosync (alter state-block update-block block-rotate @state-grid))
+    (= key-code KeyEvent/VK_DOWN)
+      (do
+        ;; This is a bit ugly but we need to interrupt the timer when forcing the
+        ;; block to fall. Otherwise timer tick my coincidence with a key press and we'd
+        ;; get a block falling two rows at a time which feels inconsistent.
+        (.restart game-timer)
+        (update-game))))
 
 (defn paint-grid
   ;; g is java.awt.Graphics2D object
@@ -288,7 +309,7 @@
       ;; Just as in GIMP -- block is "a layer" :)
       (let [game-grid (place-block-in-grid @state-grid @state-block)]
         (paint-grid g game-grid)))
-    (actionPerformed [e]
+    (actionPerformed [e] ; this method gets called each time the timer fires
       (update-game)
       ;; Proxy defines an implicit 'this' symbol.
       (.repaint this))
@@ -314,6 +335,9 @@
  (let [frame (JFrame. "Clojure Tetris")
        panel (make-game-panel)
        timer (Timer. game-time-step-millis panel)]
+   ;; Even though def is inside -main and let it always changes the root binding of a symbol
+   ;; and defines it at the global scope. Root binding is the value seen across all threads.
+   (def game-timer timer)
    (doto panel
      (.setFocusable true)
      (.addKeyListener panel))

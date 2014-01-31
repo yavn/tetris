@@ -123,4 +123,14 @@
     (is (= (update-block block block-move grid [0 1])
            block)
         "Moving block to the right moves it off bounds, so this should fail i.e. yield the original block.")))
-       
+
+(deftest test-can-block-fall
+  (let [block-grid [[:red]]
+        grid [[:empty :empty]
+              [:empty :blue]]]
+    (is (true? (can-block-fall-in-grid? grid (make-block [0 0] block-grid)))
+        "Block can fall one row lower.")
+    (is (false? (can-block-fall-in-grid? grid (make-block [1 0] block-grid)))
+        "Block can't fall outside the grid. If it reaches bottom it is placed.")
+    (is (= (can-block-fall-in-grid? grid (make-block [0 1] block-grid)))
+        "Block can't fall lower if it hits another (already placed) block.")))
