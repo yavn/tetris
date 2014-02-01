@@ -235,6 +235,28 @@
           nil
           result-grid)))))
 
+(defn row-full?
+  "Returns true if all cells in a row are non-empty."
+  [row]
+  ;; #() is a reader macro (syntax) to concisely introduce an unnamed function (lambda).
+  ;; Predicate below is equivalent to (fn [x] (not= x :empty))
+  ;; More than one argument is supported with %1, %2, etc. and variable arguments are
+  ;; introduced with %&. Functions using this syntax are best kept short and simple.
+  (every? #(not= % :empty) row))
+
+(defn place-block-in-grid-with-row-removal
+  "Same as place-block-in-grid but also removes full rows and collapses the
+  grid as it happens. Will also return nil on invalid placements."
+  [initial-grid block]
+  (let [grid (place-block-in-grid initial-grid block)]
+    (when grid
+      ;; comp (compose functions) comes handy here. We turn row-full? predicate
+      ;; into row-not-full?
+      (let [filtered-grid (filter (comp not row-full?) grid)
+            removed-rows-count (- (grid-rows grid) (grid-rows filtered-grid))
+            missing-rows (make-grid removed-rows-count (grid-cols grid))]
+        (into filtered-grid missing-rows)))))
+
 (defn update-block
   ;; This is an update function for a ref. Check 'alter' doc for info.
   "Applies function f to the block and optional arguments with
@@ -266,7 +288,7 @@
     (if (can-block-fall-in-grid? @state-grid @state-block)
       (alter state-block update-block block-move @state-grid [1 0])
       (do
-        (ref-set state-grid (place-block-in-grid @state-grid @state-block))
+        (ref-set state-grid (place-block-in-grid-with-row-removal @state-grid @state-block))
         (ref-set state-block (make-random-block))))))
 
 ;; A forward declaration. Timer is defined later, but we use it in handle-key.

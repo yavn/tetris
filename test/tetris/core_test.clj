@@ -134,3 +134,29 @@
         "Block can't fall outside the grid. If it reaches bottom it is placed.")
     (is (= (can-block-fall-in-grid? grid (make-block [0 1] block-grid)))
         "Block can't fall lower if it hits another (already placed) block.")))
+
+(deftest test-place-block-in-grid-and-delete-rows
+  ;; This is basically the same as place row, but also takes care of emptying full
+  ;; rows and collapsing the grid as it happens.
+  (let [grid [[:red :empty :empty]
+              [:blue :blue :empty]]]
+    (is (= (place-block-in-grid-with-row-removal grid (make-block [0 1] [[:green]]))
+           [[:red :green :empty]
+            [:blue :blue :empty]])
+        "Block is placed and nothing happens.")
+    (is (= (place-block-in-grid-with-row-removal grid (make-block [0 2] [[:green]
+                                                                         [:green]]))
+           [[:empty :empty :empty]
+            [:red :empty :green]])
+        "Block is placed and upper row falls down.")
+    (is (= (place-block-in-grid-with-row-removal grid (make-block [0 1] [[:green :green]]))
+           [[:empty :empty :empty]
+            [:blue :blue :empty]])
+        "Block is placed and top row is removed. Bottom row remains unchanged.")
+    (is (= (place-block-in-grid-with-row-removal grid (make-block [0 0] [[:green]]))
+           nil)
+        "This placement is invalid.")))
+
+(deftest test-is-row-full
+  (is (false? (row-full? [:empty :red])))
+  (is (true? (row-full? [:red :green :yellow]))))
