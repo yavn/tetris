@@ -36,7 +36,6 @@
 ;; a synchronous (blocks the calling thread) coordinated (all refs inside
 ;; the transaction represent the same point in time) update.
 
-
 (def colors
   { :empty   Color/lightGray 
     :cyan    Color/cyan
@@ -173,9 +172,9 @@
   [grid [skip-rows skip-cols]]
   (if (or (< skip-rows 0) (< skip-cols 0))
     :empty
-	  ;; ->> is a cool threading form which takes the first argument 'grid'
-	  ;;   and runs it through consecutive functions. Really nice when
-	  ;;   dealing with step-by-step transformations.
+    ;; ->> is a cool threading form which takes the first argument 'grid'
+    ;;   and runs it through consecutive functions. Really nice when
+    ;;   dealing with step-by-step transformations.
     (or (->> grid (drop skip-rows) first (drop skip-cols) first)
         :empty)))
   ;; Logical or in Clojure returns the first argument that evaluates to
@@ -280,8 +279,7 @@
       old-block)))
 
 (defn can-block-fall-in-grid?
-  "Moves the block one row lower. If it can't fall more, nil is returned and the
-  original block should be placed at its current position."
+  "Block can fall if there's room available below and it's not the bottom of the grid."
   [grid block]
   (not= block (update-block block block-move grid [1 0])))
 
@@ -321,7 +319,7 @@
     (= key-code KeyEvent/VK_DOWN)
       (do
         ;; This is a bit ugly but we need to interrupt the timer when forcing the
-        ;; block to fall. Otherwise timer tick my coincidence with a key press and we'd
+        ;; block to fall. Otherwise timer tick my coincide with a key press and we'd
         ;; get a block falling two rows at a time which feels inconsistent.
         (.restart game-timer)
         (update-game))))
