@@ -9,7 +9,8 @@
 (ns tetris.core
   (:gen-class)
   (:import [javax.swing JFrame JPanel Timer]
-           [java.awt.event KeyEvent ActionListener KeyListener WindowListener]))
+           [java.awt.event KeyEvent ActionListener KeyListener WindowListener]
+           [java.awt Color]))
 
 ;; This program probably calls out for a few namespaces (files) to organize
 ;; the source. However, for the sake of simplicity I decided not to do that
@@ -35,14 +36,14 @@
 ;; the transaction represent the same point in time) update.
 
 (def colors
-  { :empty   java.awt.Color/lightGray 
-    :cyan    java.awt.Color/cyan
-    :blue    java.awt.Color/blue
-    :orange  java.awt.Color/orange
-    :yellow  java.awt.Color/yellow
-    :green   java.awt.Color/green
-    :magenta java.awt.Color/magenta
-    :red     java.awt.Color/red })
+  { :empty   Color/lightGray 
+    :cyan    Color/cyan
+    :blue    Color/blue
+    :orange  Color/orange
+    :yellow  Color/yellow
+    :green   Color/green
+    :magenta Color/magenta
+    :red     Color/red })
 
 ;; These are the shapes of blocks used in the game.
 ;; Convenient string definitions will be later converted
@@ -330,7 +331,12 @@
       ;; Flatten the block onto the grid so it can be drawn together.
       ;; Just as in GIMP -- block is "a layer" :)
       (let [game-grid (place-block-in-grid @state-grid @state-block)]
-        (paint-grid g game-grid)))
+        (paint-grid g game-grid)
+        ;; If game-grid is nil then it means that block is in illegal position.
+        ;; Usually this means that the grid has filled up and the game is over!
+        (when-not game-grid
+          (.setColor g Color/black)
+          (.drawString g "Game over!" 16 24))))
     (actionPerformed [e] ; this method gets called each time the timer fires
       (update-game)
       ;; Proxy defines an implicit 'this' symbol.
