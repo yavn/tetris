@@ -30,10 +30,12 @@
 
 (def state-grid (ref nil))
 (def state-block (ref nil))
+(def state-score (ref 0))  ; to make things a bit more interesting, we also introduce score!
 
 ;; Refs must be updated inside a transaction (the famous STM). This constitutes
 ;; a synchronous (blocks the calling thread) coordinated (all refs inside
 ;; the transaction represent the same point in time) update.
+
 
 (def colors
   { :empty   Color/lightGray 
@@ -246,8 +248,9 @@
   (every? #(not= % :empty) row))
 
 (defn place-block-in-grid-with-row-removal
-  "Same as place-block-in-grid but also removes full rows and collapses the
-  grid as it happens. Will also return nil on invalid placements."
+  "Similar to place-block-in-grid but returns a pair of values: number of rows
+  removed and the updated grid. The new grid will have full rows removed.
+  If block placement is illegal nil will be returned instead."
   [initial-grid block]
   (let [grid (place-block-in-grid initial-grid block)]
     (when grid
@@ -256,7 +259,7 @@
       (let [filtered-grid (filter (comp not row-full?) grid)
             removed-rows-count (- (grid-rows grid) (grid-rows filtered-grid))
             missing-rows (make-grid removed-rows-count (grid-cols grid))]
-        (into filtered-grid missing-rows)))))
+        [removed-rows-count (into filtered-grid missing-rows)]))))
 
 (defn update-block
   ;; This is an update function for a ref. Check 'alter' doc for info.
@@ -282,6 +285,11 @@
   [grid block]
   (not= block (update-block block block-move grid [1 0])))
 
+(defn calculate-score
+  "Calculates score for n number of cleared rows."
+  [old-score n]
+  (reduce + old-score (range 1 (inc n))))
+
 (defn update-game
   "Game logic update. Makes the block fall, etc."
   []
@@ -289,8 +297,14 @@
     (if (can-block-fall-in-grid? @state-grid @state-block)
       (alter state-block update-block block-move @state-grid [1 0])
       (do
-        (ref-set state-grid (place-block-in-grid-with-row-removal @state-grid @state-block))
-        (ref-set state-block (make-random-block))))))
+        (let [[removed-rows updated-grid] (place-block-in-grid-with-row-removal @state-grid @state-block)]
+          (ref-set state-grid updated-grid)
+          (ref-set state-block (make-random-block))
+          ;; Commute is like alter but may happen out of order with respect to other
+          ;; ref updates. At this point score can't be impacted by anything so it's fine
+          ;; to use it. Given its weaker guarantees, commute can potentially yield better
+          ;; performance (this doesn't matter in our situation, so it's more of an example).
+          (commute state-score calculate-score (or removed-rows 0)))))))
 
 ;; A forward declaration. Timer is defined later, but we use it in handle-key.
 ;; This is a syntactic sugar for (def foo) i.e. without specifying foo's value.
@@ -334,9 +348,10 @@
         (paint-grid g game-grid)
         ;; If game-grid is nil then it means that block is in illegal position.
         ;; Usually this means that the grid has filled up and the game is over!
-        (when-not game-grid
-          (.setColor g Color/black)
-          (.drawString g "Game over!" 16 24))))
+        (.setColor g Color/black)
+        (if game-grid
+          (.drawString g (str "Score:" @state-score) 16 24)
+          (.drawString g (str "Game over! Your score is:" @state-score) 16 24))))
     (actionPerformed [e] ; this method gets called each time the timer fires
       (update-game)
       ;; Proxy defines an implicit 'this' symbol.
@@ -354,7 +369,8 @@
   (dosync
     (ref-set state-grid (make-grid (:rows game-grid-size)
                                    (:cols game-grid-size)))
-    (ref-set state-block (make-random-block))))
+    (ref-set state-block (make-random-block))
+    (ref-set state-score 0)))
 
 (defn -main
  [& args]

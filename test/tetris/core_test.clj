@@ -141,17 +141,17 @@
   (let [grid [[:red :empty :empty]
               [:blue :blue :empty]]]
     (is (= (place-block-in-grid-with-row-removal grid (make-block [0 1] [[:green]]))
-           [[:red :green :empty]
-            [:blue :blue :empty]])
+           [0 [[:red :green :empty]
+               [:blue :blue :empty]]])
         "Block is placed and nothing happens.")
     (is (= (place-block-in-grid-with-row-removal grid (make-block [0 2] [[:green]
                                                                          [:green]]))
-           [[:empty :empty :empty]
-            [:red :empty :green]])
+           [1 [[:empty :empty :empty]
+               [:red :empty :green]]])
         "Block is placed and upper row falls down.")
     (is (= (place-block-in-grid-with-row-removal grid (make-block [0 1] [[:green :green]]))
-           [[:empty :empty :empty]
-            [:blue :blue :empty]])
+           [1 [[:empty :empty :empty]
+               [:blue :blue :empty]]])
         "Block is placed and top row is removed. Bottom row remains unchanged.")
     (is (= (place-block-in-grid-with-row-removal grid (make-block [0 0] [[:green]]))
            nil)
@@ -160,3 +160,17 @@
 (deftest test-is-row-full
   (is (false? (row-full? [:empty :red])))
   (is (true? (row-full? [:red :green :yellow]))))
+
+(deftest test-calculate-score
+  ;; You get more score if you clear several rows at the same time.
+  ;; Score is calculated like this: (+ 1 2 ... n) where n is the number of rows cleared.
+  (is (= (calculate-score 13 0) 13)
+      "No rows cleared so score is unchanged.")
+  (is (= (calculate-score 0 1) 1)
+      "One row is worth 1 point.")
+  (is (= (calculate-score 0 2) 3)
+      "Two rows are worth 3 points.")
+  (is (= (calculate-score 0 3) 6)
+      "Three rows are worth 6 points.")
+  (is (= (calculate-score 0 10) 55)
+      "Ten rows are worth 55 points."))
