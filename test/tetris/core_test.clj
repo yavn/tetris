@@ -1,11 +1,14 @@
+;;;; Copyright 2014 Maciej Jesionowski
+;;;; A tetris-like game in Clojure
+;;;;
+;;;; I tried to keep this project test-first. Here are the tests for the most of the
+;;;; building blocks of the game.
+;;;;
+;;;; Licensed under GNU GPL v3
+
 (ns tetris.core-test
   (:use clojure.test
         tetris.core :reload))
-
-(def test-shape
-  {:color :red
-   :grid ["_XX"
-          "XX_"]})
 
 (deftest test-create-grid
   (let [grid (make-grid 2 3)]

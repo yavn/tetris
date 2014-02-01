@@ -1,10 +1,10 @@
 ;;;; Copyright 2014 Maciej Jesionowski
 ;;;; A tetris-like game in Clojure
+;;;;
 ;;;; This is purely for educational purposes. Comments are a bit excessive
 ;;;; because of that.
 ;;;;
 ;;;; Licensed under GNU GPL v3
-
 
 (ns tetris.core
   (:gen-class)
